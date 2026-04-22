@@ -6,7 +6,21 @@
   --accent: #B38A3F;
   --accent-soft: #E5D4A8;
   --border: #E5E7EB;
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-lg: 0 8px 24px rgba(17, 24, 39, 0.04);
   --radius: 16px;
+}
+
+[data-theme='dark'] {
+  --bg: #0B1120;
+  --surface: #111827;
+  --ink: #F9FAFB;
+  --ink-soft: #9CA3AF;
+  --accent: #D4AF66;
+  --accent-soft: #3F2F11;
+  --border: #1F2937;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -23,6 +37,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 a {
@@ -33,31 +48,81 @@ a {
 .page {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 48px 24px 24px;
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 20px;
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s ease, border-color 0.15s ease,
+    background-color 0.15s ease, transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  pointer-events: none;
+}
+
+.theme-icon-sun {
+  display: none;
+}
+
+[data-theme='dark'] .theme-icon-moon {
+  display: none;
+}
+
+[data-theme='dark'] .theme-icon-sun {
+  display: inline-block;
 }
 
 .hero {
   text-align: center;
-  padding: 8px 0;
+  padding: 8px 4px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 18px;
+  padding: 7px 16px;
   border: 1px solid var(--accent-soft);
   border-radius: 999px;
   background: var(--surface);
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .brand-name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--accent);
 }
@@ -67,26 +132,27 @@ a {
 }
 
 .brand-sub {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.2em;
   color: var(--ink-soft);
   font-weight: 600;
 }
 
 .hero-title {
-  font-size: clamp(32px, 5vw, 48px);
+  font-size: clamp(26px, 6vw, 48px);
   font-weight: 800;
   color: var(--ink);
-  margin-bottom: 12px;
-  line-height: 1.2;
+  margin-bottom: 10px;
+  line-height: 1.25;
 }
 
 .hero-sub {
-  font-size: 18px;
+  font-size: clamp(14px, 2.6vw, 18px);
   color: var(--ink-soft);
   max-width: 640px;
   margin: 0 auto;
   line-height: 1.7;
+  padding: 0 4px;
 }
 
 .chat-wrapper {
@@ -95,25 +161,27 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  min-height: 620px;
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04),
-    0 8px 24px rgba(17, 24, 39, 0.04);
+  min-height: 520px;
+  box-shadow: var(--shadow-sm), var(--shadow-lg);
   display: flex;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .chat-wrapper > * {
   flex: 1;
   width: 100%;
-  min-height: 620px;
+  min-height: 520px;
 }
 
 .footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   justify-content: space-between;
   align-items: center;
   color: var(--ink-soft);
-  font-size: 14px;
-  padding-top: 16px;
+  font-size: 13px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
@@ -126,20 +194,63 @@ a {
   text-decoration: underline;
 }
 
-.state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 100%;
-  min-height: 620px;
-  padding: 24px;
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 15px;
+/* Tablet and up */
+@media (min-width: 640px) {
+  .page {
+    padding: 32px 24px 24px;
+    gap: 28px;
+  }
+
+  .hero {
+    padding: 8px 0;
+  }
+
+  .brand {
+    padding: 8px 18px;
+    margin-bottom: 24px;
+  }
+
+  .brand-name {
+    font-size: 18px;
+  }
+
+  .brand-sub {
+    font-size: 12px;
+  }
+
+  .hero-sub {
+    padding: 0;
+  }
+
+  .chat-wrapper,
+  .chat-wrapper > * {
+    min-height: 600px;
+  }
+
+  .footer {
+    font-size: 14px;
+  }
 }
 
-.state.error {
-  color: #B91C1C;
+/* Desktop */
+@media (min-width: 1024px) {
+  .page {
+    padding: 48px 24px 24px;
+    gap: 32px;
+  }
+
+  .chat-wrapper,
+  .chat-wrapper > * {
+    min-height: 640px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+  }
 }

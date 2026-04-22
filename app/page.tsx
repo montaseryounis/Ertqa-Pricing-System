@@ -1,8 +1,13 @@
 import ChatKitPanel from '@/components/ChatKitPanel';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   return (
     <main className="page">
+      <div className="topbar">
+        <ThemeToggle />
+      </div>
+
       <header className="hero">
         <div className="brand">
           <span className="brand-name">ارتقاء</span>

@@ -8,14 +8,26 @@ export const metadata: Metadata = {
     'احصل على عرض سعر فوري لهداياك وجوائزك المخصصة من ارتقاء — تصميم وتصنيع حرفي بأعلى جودة.',
 };
 
+export const viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FAFAF9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B1120' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+};
+
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('ertqa_theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
