@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ChatKit, useChatKit } from '@openai/chatkit-react';
+
+type Theme = 'light' | 'dark';
 
 const DEVICE_ID_KEY = 'ertqa_chatkit_device_id';
 
@@ -16,6 +18,19 @@ function getOrCreateDeviceId(): string {
 }
 
 export default function ChatKitPanel() {
+  const [theme, setTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    const current =
+      (document.documentElement.dataset.theme as Theme) || 'light';
+    setTheme(current);
+    const onChange = (event: Event) => {
+      setTheme((event as CustomEvent<Theme>).detail);
+    };
+    window.addEventListener('ertqa:theme-change', onChange);
+    return () => window.removeEventListener('ertqa:theme-change', onChange);
+  }, []);
+
   const getClientSecret = useCallback(async () => {
     const response = await fetch('/api/chatkit/session', {
       method: 'POST',
@@ -35,7 +50,7 @@ export default function ChatKitPanel() {
   const { control } = useChatKit({
     api: { getClientSecret },
     theme: {
-      colorScheme: 'light',
+      colorScheme: theme,
       color: {
         accent: { primary: '#B38A3F', level: 1 },
       },
