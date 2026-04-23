@@ -1,10 +1,12 @@
 import ChatKitPanel from '@/components/ChatKitPanel';
 import ThemeToggle from '@/components/ThemeToggle';
+import LogoutButton from '@/components/LogoutButton';
 
 export default function HomePage() {
   return (
     <main className="page">
       <div className="topbar">
+        <LogoutButton />
         <ThemeToggle />
       </div>
 
@@ -16,8 +18,7 @@ export default function HomePage() {
         </div>
         <h1 className="hero-title">وكيل التسعير الذكي</h1>
         <p className="hero-sub">
-          احصل على عرض سعر فوري لهداياك وجوائزك المخصصة — تصميم راقٍ وتصنيع حرفي
-          بأعلى جودة.
+          أداة داخلية لفريق المبيعات — تسعير الهدايا والجوائز المخصصة بسرعة ودقة.
         </p>
       </header>
 

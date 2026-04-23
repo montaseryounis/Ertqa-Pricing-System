@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Best-effort in-memory rate limit per warm serverless instance.
-// For stricter guarantees across instances, swap for Upstash Redis later.
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const RATE_LIMIT_MAX = 20;
+// Limit raised to suit a 10-person sales team that may share an office IP.
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 100;
 const requestLog = new Map<string, number[]>();
 
 function clientIp(request: Request): string {
@@ -26,7 +27,6 @@ function rateLimited(ip: string): boolean {
   recent.push(now);
   requestLog.set(ip, recent);
 
-  // Probabilistic cleanup to keep the map bounded.
   if (Math.random() < 0.01) {
     for (const [key, times] of requestLog.entries()) {
       const fresh = times.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
@@ -38,10 +38,9 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-// CSRF protection: reject requests whose Origin doesn't match the serving host.
 function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
-  if (!origin) return true; // same-site navigations may omit Origin
+  if (!origin) return true;
   const host = request.headers.get('host');
   if (!host) return false;
   try {
@@ -51,9 +50,12 @@ function sameOrigin(request: Request): boolean {
   }
 }
 
-type ChatKitSession = {
-  client_secret: string;
-};
+function slugify(name: string): string {
+  const cleaned = name.replace(/[^a-zA-Z0-9؀-ۿ]+/g, '_').toLowerCase();
+  return cleaned || 'anon';
+}
+
+type ChatKitSession = { client_secret: string };
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {
@@ -63,38 +65,33 @@ export async function POST(request: Request) {
   const ip = clientIp(request);
   if (rateLimited(ip)) {
     return NextResponse.json(
-      {
-        error:
-          'Too many requests. Please wait a few minutes before trying again.',
-      },
+      { error: 'Too many requests. Please wait a few minutes.' },
       { status: 429, headers: { 'Retry-After': '600' } }
     );
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   const workflowId = process.env.CHATKIT_WORKFLOW_ID;
-
   if (!apiKey || !workflowId) {
     return NextResponse.json(
-      {
-        error:
-          'Missing OPENAI_API_KEY or CHATKIT_WORKFLOW_ID. Set them in .env.local.',
-      },
+      { error: 'Missing OPENAI_API_KEY or CHATKIT_WORKFLOW_ID.' },
       { status: 500 }
     );
   }
 
-  let deviceId: string | undefined;
-  try {
-    const body = await request.json();
-    if (typeof body?.deviceId === 'string') {
-      deviceId = body.deviceId;
+  // Tag every conversation with the signed-in sales rep so OpenAI threads
+  // group per user. Falls back to anon if cookie is missing.
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get('ertqa_user')?.value;
+  let userName = 'anon';
+  if (userCookie) {
+    try {
+      userName = decodeURIComponent(userCookie);
+    } catch {
+      // malformed cookie
     }
-  } catch {
-    // empty body is acceptable
   }
-
-  const userId = deviceId ?? `anon_${crypto.randomUUID()}`;
+  const userId = `ertqa_${slugify(userName)}`;
 
   const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
     method: 'POST',
