@@ -10,8 +10,14 @@ export default function LoginPage() {
     <main className="login-page">
       <div className="login-card">
         <div className="brand">
-          <span className="brand-name">ارتقاء</span>
-          <span className="brand-sep">·</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt="ارتقاء"
+            className="brand-logo"
+            width={24}
+            height={30}
+          />
           <span className="brand-sub">ERTQA</span>
         </div>
         <h1 className="login-title">تسجيل دخول فريق المبيعات</h1>
