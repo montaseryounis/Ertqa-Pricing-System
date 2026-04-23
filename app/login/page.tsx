@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import LoginForm from './LoginForm';
 
 export const metadata = {
@@ -39,7 +40,9 @@ export default function LoginPage() {
         </div>
         <h1 className="login-title">تسجيل دخول فريق المبيعات</h1>
         <p className="login-sub">أداة داخلية — للاستخدام من قبل فريق ارتقاء فقط</p>
-        <LoginForm teamNames={teamNames} />
+        <Suspense fallback={null}>
+          <LoginForm teamNames={teamNames} />
+        </Suspense>
       </div>
     </main>
   );
