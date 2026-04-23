@@ -57,8 +57,7 @@ export default function ChatKitPanel() {
       radius: 'round',
     },
     startScreen: {
-      greeting:
-        'مرحباً بك في ارتقاء — كيف يمكنني مساعدتك في تسعير هديتك أو جائزتك المخصصة؟',
+      greeting: 'مرحباً بك في وكيل ارتقاء الذكي — كيف يمكنني مساعدتك',
       prompts: [],
     },
     composer: {
