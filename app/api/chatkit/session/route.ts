@@ -5,7 +5,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Best-effort in-memory rate limit per warm serverless instance.
-// Limit raised to suit a 10-person sales team that may share an office IP.
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 100;
 const requestLog = new Map<string, number[]>();
@@ -79,8 +78,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Tag every conversation with the signed-in sales rep so OpenAI threads
-  // group per user. Falls back to anon if cookie is missing.
   const cookieStore = await cookies();
   const userCookie = cookieStore.get('ertqa_user')?.value;
   let userName = 'anon';
@@ -103,6 +100,13 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       workflow: { id: workflowId },
       user: userId,
+      chatkit_configuration: {
+        file_upload: {
+          enabled: true,
+          max_files: 5,
+          max_file_size: 10 * 1024 * 1024,
+        },
+      },
     }),
   });
 
