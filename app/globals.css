@@ -17,7 +17,7 @@
     0 2px 4px rgba(17, 24, 39, 0.06);
   --glow: rgba(179, 138, 63, 0.25);
   --bg-radial: radial-gradient(ellipse at 50% -10%, rgba(179, 138, 63, 0.10), transparent 55%);
-  --pattern-opacity: 0.05;
+  --pattern-opacity: 0.15;
   --radius: 16px;
 }
 
@@ -40,7 +40,7 @@
     0 0 0 1px rgba(212, 175, 102, 0.06);
   --glow: rgba(212, 175, 102, 0.35);
   --bg-radial: radial-gradient(ellipse at 50% -10%, rgba(212, 175, 102, 0.10), transparent 55%);
-  --pattern-opacity: 0.07;
+  --pattern-opacity: 0.18;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,9 +67,9 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url('/logo.svg');
+  background-image: url('/pattern.svg');
   background-repeat: repeat;
-  background-size: 140px auto;
+  background-size: 240px auto;
   opacity: var(--pattern-opacity);
   pointer-events: none;
   z-index: 0;
@@ -374,12 +374,13 @@ a { color: inherit; text-decoration: none; }
   .hero-sub { padding: 0; }
   .chat-wrapper, .chat-wrapper > * { min-height: 600px; }
   .footer { font-size: 14px; }
-  body::before { background-size: 180px auto; }
+  body::before { background-size: 300px auto; }
 }
 
 @media (min-width: 1024px) {
   .page { padding: 48px 24px 24px; gap: 32px; }
   .chat-wrapper, .chat-wrapper > * { min-height: 640px; }
+  body::before { background-size: 360px auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
