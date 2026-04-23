@@ -9,6 +9,8 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const DISPLAY_NAME = 'ErtqaAgent';
+
 export async function POST(request: Request) {
   const teamPassword = process.env.TEAM_PASSWORD;
   const authSecret = process.env.AUTH_SECRET;
@@ -20,18 +22,18 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { name?: string; password?: string };
+  let body: { password?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'طلب غير صالح' }, { status: 400 });
   }
 
-  const { name, password } = body;
+  const { password } = body;
 
-  if (!name || !password) {
+  if (!password) {
     return NextResponse.json(
-      { error: 'الاسم وكلمة السر مطلوبان' },
+      { error: 'كلمة السر مطلوبة' },
       { status: 400 }
     );
   }
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     maxAge: COOKIE_MAX_AGE,
   });
 
-  response.cookies.set(USER_COOKIE, encodeURIComponent(name), {
+  response.cookies.set(USER_COOKIE, encodeURIComponent(DISPLAY_NAME), {
     httpOnly: false,
     secure: true,
     sameSite: 'lax',
