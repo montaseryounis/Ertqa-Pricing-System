@@ -61,7 +61,16 @@ export default function ChatKitPanel() {
       prompts: [],
     },
     composer: {
-      placeholder: 'اكتب طلبك هنا...',
+      placeholder: 'اكتب طلبك هنا أو ارفع صورة...',
+      attachments: {
+        enabled: true,
+        maxCount: 5,
+        maxSize: 10 * 1024 * 1024,
+        accept: {
+          'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.heic'],
+          'application/pdf': ['.pdf'],
+        },
+      },
     },
   });
 
