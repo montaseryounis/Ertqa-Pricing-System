@@ -1,19 +1,23 @@
+import Link from 'next/link';
 import ChatKitPanel from '@/components/ChatKitPanel';
 import ThemeToggle from '@/components/ThemeToggle';
 import { UserButton } from '@clerk/nextjs';
+import { isAdminUser } from '@/lib/admin';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const isAdmin = await isAdminUser();
+
   return (
     <main className="page">
       <div className="topbar">
-        <UserButton
-          afterSignOutUrl="/sign-in"
-          appearance={{
-            elements: {
-              avatarBox: 'w-10 h-10',
-            },
-          }}
-        />
+        <div className="topbar-start">
+          <UserButton afterSignOutUrl="/sign-in" />
+          {isAdmin && (
+            <Link href="/admin" className="admin-pill">
+              لوحة الأدمن
+            </Link>
+          )}
+        </div>
         <ThemeToggle />
       </div>
 
