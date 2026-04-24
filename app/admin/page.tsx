@@ -1,18 +1,24 @@
 import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import { createAdminClient } from '@/lib/supabase';
+import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
 
 export const dynamic = 'force-dynamic';
 
-function formatDate(isoString: string): string {
-  const d = new Date(isoString);
-  return d.toLocaleString('ar-SA', {
+function formatDate(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleString('ar-SA', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
 }
 
-function startOfDay(offsetDays = 0): string {
+function statusLabel(status: ThreadSummary['status']): string {
+  if (status.type === 'active') return 'نشطة';
+  if (status.type === 'locked') return 'مقفلة';
+  return 'مغلقة';
+}
+
+function startOfDayIso(offsetDays = 0): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - offsetDays);
@@ -22,28 +28,37 @@ function startOfDay(offsetDays = 0): string {
 export default async function AdminPage() {
   const supabase = createAdminClient();
 
-  const { data: conversations } = await supabase
-    .from('conversations')
-    .select(
-      'id, user_id, user_email, customer_name, workflow_id, session_id, started_at'
+  let threads: ThreadSummary[] = [];
+  let threadsError: string | null = null;
+  try {
+    const res = await listThreads({ limit: 100, order: 'desc' });
+    threads = res.data;
+  } catch (error) {
+    threadsError = error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  const userIds = Array.from(
+    new Set(
+      threads
+        .map((t) => parseUserId(t.user))
+        .filter((id): id is string => Boolean(id))
     )
-    .order('started_at', { ascending: false })
-    .limit(200);
-
-  const rows = conversations ?? [];
-
-  const userIds = Array.from(new Set(rows.map((c) => c.user_id)));
+  );
   const { data: users } = userIds.length
     ? await supabase
         .from('users')
-        .select('id, full_name, role')
+        .select('id, email, full_name, role')
         .in('id', userIds)
     : { data: [] };
   const userMap = new Map(
-    (users ?? []).map((u: { id: string; full_name: string | null; role: string }) => [
-      u.id,
-      { name: u.full_name, role: u.role },
-    ])
+    (users ?? []).map(
+      (u: {
+        id: string;
+        email: string;
+        full_name: string | null;
+        role: string;
+      }) => [u.id, u]
+    )
   );
 
   const [
@@ -57,11 +72,11 @@ export default async function AdminPage() {
     supabase
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .gte('started_at', startOfDay(0)),
+      .gte('started_at', startOfDayIso(0)),
     supabase
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .gte('started_at', startOfDay(6)),
+      .gte('started_at', startOfDayIso(6)),
   ]);
 
   return (
@@ -79,7 +94,9 @@ export default async function AdminPage() {
           <h1>لوحة الأدمن</h1>
         </div>
         <div className="admin-header-actions">
-          <Link href="/" className="admin-link">→ العودة للوكيل</Link>
+          <Link href="/" className="admin-link">
+            → العودة للوكيل
+          </Link>
           <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </header>
@@ -87,7 +104,7 @@ export default async function AdminPage() {
       <section className="admin-stats" aria-label="إحصائيات">
         <div className="stat">
           <div className="stat-value">{totalConversations ?? 0}</div>
-          <div className="stat-label">إجمالي المحادثات</div>
+          <div className="stat-label">إجمالي الجلسات</div>
         </div>
         <div className="stat">
           <div className="stat-value">{uniqueUsers ?? 0}</div>
@@ -105,14 +122,16 @@ export default async function AdminPage() {
 
       <section className="admin-table-wrap">
         <div className="admin-table-header">
-          <h2>آخر المحادثات</h2>
+          <h2>المحادثات</h2>
           <span className="admin-subtle">
-            تعرض {rows.length} محادثة (الحد الأقصى 200)
+            {threadsError
+              ? `فشل تحميل المحادثات: ${threadsError}`
+              : `تعرض ${threads.length} محادثة (الحد الأقصى 100)`}
           </span>
         </div>
-        {rows.length === 0 ? (
+        {threads.length === 0 && !threadsError ? (
           <div className="admin-empty">
-            لا توجد محادثات بعد. ابدأ محادثة من الصفحة الرئيسية لتظهر هنا.
+            لا توجد محادثات فعلية بعد. ابدأ محادثة من الصفحة الرئيسية.
           </div>
         ) : (
           <div className="admin-table-scroll">
@@ -122,26 +141,34 @@ export default async function AdminPage() {
                   <th>التاريخ</th>
                   <th>الموظف</th>
                   <th>الإيميل</th>
-                  <th>الدور</th>
-                  <th>العميل</th>
+                  <th>العنوان</th>
+                  <th>الحالة</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((c) => {
-                  const info = userMap.get(c.user_id);
+                {threads.map((t) => {
+                  const userId = parseUserId(t.user);
+                  const user = userId ? userMap.get(userId) : undefined;
                   return (
-                    <tr key={c.id}>
-                      <td>{formatDate(c.started_at)}</td>
-                      <td>{info?.name ?? '—'}</td>
-                      <td className="admin-email">{c.user_email}</td>
+                    <tr key={t.id}>
+                      <td>{formatDate(t.created_at)}</td>
+                      <td>{user?.full_name ?? '—'}</td>
+                      <td className="admin-email">{user?.email ?? t.user}</td>
+                      <td>{t.title ?? '—'}</td>
                       <td>
-                        <span
-                          className={`role-badge role-${info?.role ?? 'sales'}`}
-                        >
-                          {info?.role === 'admin' ? 'أدمن' : 'مبيعات'}
+                        <span className={`role-badge role-${t.status.type}`}>
+                          {statusLabel(t.status)}
                         </span>
                       </td>
-                      <td>{c.customer_name ?? '—'}</td>
+                      <td>
+                        <Link
+                          href={`/admin/thread/${t.id}`}
+                          className="admin-view-btn"
+                        >
+                          عرض
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
