@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { ClerkProvider } from '@clerk/nextjs';
+import { arSA } from '@clerk/localizations';
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'ارتقاء · وكيل التسعير الذكي',
   description:
-    'احصل على عرض سعر فوري لهداياك وجوائزك المخصصة من ارتقاء — تصميم وتصنيع حرفي بأعلى جودة.',
+    'أداة داخلية لفريق مبيعات ارتقاء — تسعير الهدايا والجوائز المخصصة بدقة وسرعة.',
 };
 
 export const viewport = {
@@ -26,24 +28,39 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <Script
-          src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
-          strategy="beforeInteractive"
-        />
-      </head>
-      <body>
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider
+      localization={arSA}
+      appearance={{
+        variables: {
+          colorPrimary: '#B38A3F',
+          fontFamily: 'Tajawal, sans-serif',
+          borderRadius: '12px',
+        },
+      }}
+    >
+      <html lang="ar" dir="rtl" suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin=""
+          />
+          <link
+            href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap"
+            rel="stylesheet"
+          />
+          <Script
+            src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
+            strategy="beforeInteractive"
+          />
+        </head>
+        <body>
+          {children}
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

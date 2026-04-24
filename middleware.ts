@@ -1,34 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_COOKIE, verifyAuthToken } from '@/lib/auth';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const PUBLIC_PATHS = ['/login', '/api/login', '/api/logout'];
+const isPublicRoute = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+]);
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (
-    PUBLIC_PATHS.some(
-      (p) => pathname === p || pathname.startsWith(p + '/')
-    )
-  ) {
-    return NextResponse.next();
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
   }
-
-  const token = request.cookies.get(AUTH_COOKIE)?.value;
-  const ok = await verifyAuthToken(token, process.env.AUTH_SECRET);
-
-  if (!ok) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    if (pathname !== '/') url.searchParams.set('from', pathname);
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\..*).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
   ],
 };

@@ -1,36 +1,27 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Best-effort in-memory rate limit per warm serverless instance.
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 100;
 const requestLog = new Map<string, number[]>();
 
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  const real = request.headers.get('x-real-ip');
-  if (real) return real;
-  return 'unknown';
-}
-
-function rateLimited(ip: string): boolean {
+function rateLimited(key: string): boolean {
   const now = Date.now();
-  const recent = (requestLog.get(ip) ?? []).filter(
+  const recent = (requestLog.get(key) ?? []).filter(
     (t) => now - t < RATE_LIMIT_WINDOW_MS
   );
   if (recent.length >= RATE_LIMIT_MAX) return true;
   recent.push(now);
-  requestLog.set(ip, recent);
+  requestLog.set(key, recent);
 
   if (Math.random() < 0.01) {
-    for (const [key, times] of requestLog.entries()) {
+    for (const [k, times] of requestLog.entries()) {
       const fresh = times.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-      if (fresh.length === 0) requestLog.delete(key);
-      else requestLog.set(key, fresh);
+      if (fresh.length === 0) requestLog.delete(k);
+      else requestLog.set(k, fresh);
     }
   }
 
@@ -49,11 +40,6 @@ function sameOrigin(request: Request): boolean {
   }
 }
 
-function slugify(name: string): string {
-  const cleaned = name.replace(/[^a-zA-Z0-9؀-ۿ]+/g, '_').toLowerCase();
-  return cleaned || 'anon';
-}
-
 type ChatKitSession = { client_secret: string };
 
 export async function POST(request: Request) {
@@ -61,8 +47,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
   }
 
-  const ip = clientIp(request);
-  if (rateLimited(ip)) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (rateLimited(userId)) {
     return NextResponse.json(
       { error: 'Too many requests. Please wait a few minutes.' },
       { status: 429, headers: { 'Retry-After': '600' } }
@@ -78,18 +68,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get('ertqa_user')?.value;
-  let userName = 'anon';
-  if (userCookie) {
-    try {
-      userName = decodeURIComponent(userCookie);
-    } catch {
-      // malformed cookie
-    }
-  }
-  const userId = `ertqa_${slugify(userName)}`;
-
   const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
     method: 'POST',
     headers: {
@@ -99,7 +77,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       workflow: { id: workflowId },
-      user: userId,
+      user: `ertqa_${userId}`,
       chatkit_configuration: {
         file_upload: {
           enabled: true,

@@ -1,12 +1,19 @@
 import ChatKitPanel from '@/components/ChatKitPanel';
 import ThemeToggle from '@/components/ThemeToggle';
-import LogoutButton from '@/components/LogoutButton';
+import { UserButton } from '@clerk/nextjs';
 
 export default function HomePage() {
   return (
     <main className="page">
       <div className="topbar">
-        <LogoutButton />
+        <UserButton
+          afterSignOutUrl="/sign-in"
+          appearance={{
+            elements: {
+              avatarBox: 'w-10 h-10',
+            },
+          }}
+        />
         <ThemeToggle />
       </div>
 
