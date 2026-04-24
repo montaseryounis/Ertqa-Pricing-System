@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { createAdminClient } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,10 @@ function sameOrigin(request: Request): boolean {
   }
 }
 
-type ChatKitSession = { client_secret: string };
+type ChatKitSessionResponse = {
+  id?: string;
+  client_secret: string;
+};
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {
@@ -68,6 +72,17 @@ export async function POST(request: Request) {
     );
   }
 
+  const user = await currentUser();
+  const email =
+    user?.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)
+      ?.emailAddress ??
+    user?.emailAddresses?.[0]?.emailAddress ??
+    null;
+  const fullName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || null;
+  const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'sales';
+
+  // Create ChatKit session first - if OpenAI rejects, we don't log anything.
   const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
     method: 'POST',
     headers: {
@@ -96,6 +111,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const session = (await response.json()) as ChatKitSession;
+  const session = (await response.json()) as ChatKitSessionResponse;
+
+  // Best-effort logging to Supabase. We never block the user's chat on
+  // logging failures - a missing row is a lot less painful than a stuck UI.
+  if (email) {
+    try {
+      const supabase = createAdminClient();
+      await Promise.allSettled([
+        supabase.from('users').upsert(
+          {
+            id: userId,
+            email,
+            full_name: fullName,
+            role,
+          },
+          { onConflict: 'id' }
+        ),
+        supabase.from('conversations').insert({
+          user_id: userId,
+          user_email: email,
+          session_id: session.id ?? null,
+          workflow_id: workflowId,
+        }),
+      ]);
+    } catch (error) {
+      console.error('[chatkit/session] supabase logging failed', error);
+    }
+  }
+
   return NextResponse.json({ client_secret: session.client_secret });
 }
