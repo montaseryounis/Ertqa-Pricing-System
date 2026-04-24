@@ -62,7 +62,6 @@ body {
   background-repeat: no-repeat;
 }
 
-/* ERTQA logo tiled as a subtle watermark pattern behind everything */
 body::before {
   content: '';
   position: fixed;
@@ -97,7 +96,7 @@ a { color: inherit; text-decoration: none; }
   gap: 12px;
 }
 
-.theme-toggle, .logout-button {
+.theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -119,13 +118,7 @@ a { color: inherit; text-decoration: none; }
   transform: translateY(-1px);
 }
 
-.logout-button:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-  transform: translateY(-1px);
-}
-
-.theme-toggle:focus-visible, .logout-button:focus-visible {
+.theme-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -134,22 +127,6 @@ a { color: inherit; text-decoration: none; }
 .theme-icon-sun { display: none; }
 [data-theme='dark'] .theme-icon-moon { display: none; }
 [data-theme='dark'] .theme-icon-sun { display: inline-block; }
-
-.user-menu {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-name {
-  font-size: 13px;
-  color: var(--ink-soft);
-  font-weight: 600;
-  padding: 6px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
@@ -257,112 +234,17 @@ a { color: inherit; text-decoration: none; }
 .footer a { color: var(--accent); font-weight: 600; }
 .footer a:hover { text-decoration: underline; }
 
-/* ===== Login page ===== */
-.login-page {
+/* Clerk sign-in / sign-up pages */
+.auth-page {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: transparent;
   position: relative;
   z-index: 1;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px 28px;
-  box-shadow: var(--shadow-float);
-  text-align: center;
   animation: fadeInUp 0.5s ease-out both;
-}
-
-.login-card .brand { margin-bottom: 16px; }
-
-.login-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 16px 0 6px;
-}
-
-.login-sub {
-  font-size: 14px;
-  color: var(--ink-soft);
-  margin-bottom: 24px;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  text-align: right;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field > span {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.field select, .field input {
-  font-family: inherit;
-  font-size: 15px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--ink);
-  transition: border-color 0.15s ease;
-}
-
-.field select:focus, .field input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.login-error {
-  color: var(--danger);
-  background: var(--danger-soft);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  text-align: center;
-}
-
-.login-button {
-  margin-top: 8px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: none;
-  background: var(--accent);
-  color: #FFFFFF;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.login-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  opacity: 0.95;
-}
-
-.login-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 @media (min-width: 640px) {
