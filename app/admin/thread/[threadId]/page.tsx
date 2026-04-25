@@ -11,6 +11,12 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+type UserInfo = {
+  email: string;
+  full_name: string | null;
+  role: string;
+};
+
 function formatDateTime(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString('ar-SA', {
     dateStyle: 'medium',
@@ -149,11 +155,7 @@ export default async function ThreadPage({
   const items = itemsRes.data;
 
   const userId = parseUserId(thread.user);
-  let user: {
-    email: string;
-    full_name: string | null;
-    role: string;
-  } | null = null;
+  let user: UserInfo | null = null;
   if (userId) {
     const supabase = createAdminClient();
     const { data } = await supabase
@@ -161,7 +163,7 @@ export default async function ThreadPage({
       .select('email, full_name, role')
       .eq('id', userId)
       .maybeSingle();
-    user = data as typeof user;
+    user = (data as UserInfo | null) ?? null;
   }
 
   return (
