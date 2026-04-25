@@ -62,8 +62,6 @@ function initial(name: string | null, fallback: string): string {
   return source.slice(0, 1).toUpperCase();
 }
 
-// Build a 7-bucket array of thread counts for the last 7 days.
-// Index 0 = 6 days ago, index 6 = today.
 function computeSparkline(threads: ThreadSummary[]): number[] {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -110,6 +108,27 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
+// Fetch users defensively. If image_url column doesn't exist yet, fall back
+// to selecting the legacy columns so the page still renders correctly.
+async function fetchUsers(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<UserRow[]> {
+  const withImage = await supabase
+    .from('users')
+    .select('id, email, full_name, image_url, role');
+  if (!withImage.error) {
+    return (withImage.data ?? []) as UserRow[];
+  }
+
+  // Likely missing image_url column. Fall back without it.
+  const legacy = await supabase
+    .from('users')
+    .select('id, email, full_name, role');
+  if (legacy.error) return [];
+  type LegacyRow = Omit<UserRow, 'image_url'>;
+  return (legacy.data as LegacyRow[]).map((u) => ({ ...u, image_url: null }));
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -128,10 +147,7 @@ export default async function AdminPage({
     threadsError = error instanceof Error ? error.message : 'Unknown error';
   }
 
-  const { data: usersData } = await supabase
-    .from('users')
-    .select('id, email, full_name, image_url, role');
-  const users = (usersData ?? []) as UserRow[];
+  const users = await fetchUsers(supabase);
 
   const threadsByUser = new Map<string, ThreadSummary[]>();
   for (const t of allThreads) {
