@@ -372,10 +372,16 @@ a { color: inherit; text-decoration: none; }
 .team-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 14px;
+  perspective: 1100px;
 }
 
 .team-card {
+  --mx: 50%;
+  --my: 50%;
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
@@ -385,29 +391,108 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease,
-    transform 0.15s ease, background-color 0.15s ease;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(0);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.3s ease,
+    background-color 0.2s ease,
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+/* Spotlight ring that follows the cursor — uses a mask trick to keep
+   the radial gradient confined to the border area only. */
+.team-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: radial-gradient(
+    260px circle at var(--mx) var(--my),
+    rgba(179, 138, 63, 0.95),
+    rgba(179, 138, 63, 0.35) 25%,
+    transparent 55%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+[data-theme='dark'] .team-card::before {
+  background: radial-gradient(
+    260px circle at var(--mx) var(--my),
+    rgba(212, 175, 102, 1),
+    rgba(212, 175, 102, 0.4) 25%,
+    transparent 55%
+  );
+}
+
+/* Subtle inner glow that also follows the cursor (gives depth) */
+.team-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    280px circle at var(--mx) var(--my),
+    rgba(179, 138, 63, 0.10),
+    transparent 60%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+[data-theme='dark'] .team-card::after {
+  background: radial-gradient(
+    280px circle at var(--mx) var(--my),
+    rgba(212, 175, 102, 0.14),
+    transparent 60%
+  );
 }
 
 .team-card:hover {
-  border-color: var(--accent-soft);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm), 0 8px 20px rgba(17, 24, 39, 0.06);
+  box-shadow:
+    var(--shadow-sm),
+    0 18px 38px -10px rgba(17, 24, 39, 0.20),
+    0 8px 16px -8px rgba(179, 138, 63, 0.18);
+}
+
+[data-theme='dark'] .team-card:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 22px 40px -12px rgba(0, 0, 0, 0.6),
+    0 0 28px -8px rgba(212, 175, 102, 0.22);
+}
+
+.team-card:hover::before,
+.team-card:hover::after {
+  opacity: 1;
 }
 
 .team-card-active {
   border-color: var(--accent);
   background: rgba(179, 138, 63, 0.05);
-  box-shadow: var(--shadow-sm), 0 0 0 2px var(--accent-soft);
+  box-shadow: var(--shadow-sm), 0 0 0 1.5px var(--accent-soft);
 }
 
 [data-theme='dark'] .team-card-active {
   background: rgba(212, 175, 102, 0.06);
 }
 
-.team-card-all {
-  align-items: center;
-}
+.team-card-active::before { opacity: 0.55; }
+
+.team-card-all { align-items: center; }
 
 .team-avatar {
   position: relative;
@@ -424,6 +509,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 800;
   box-shadow: 0 2px 6px rgba(179, 138, 63, 0.25);
   overflow: hidden;
+  transform: translateZ(20px);
 }
 
 .team-avatar img {
@@ -461,7 +547,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: 999px;
   background: #16A34A;
   border: 2px solid var(--surface);
-  z-index: 1;
+  z-index: 3;
 }
 
 .team-card-body {
@@ -470,6 +556,9 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+  z-index: 1;
+  transform: translateZ(12px);
 }
 
 .team-card-name-row {
@@ -855,7 +944,8 @@ a { color: inherit; text-decoration: none; }
     animation: none !important;
   }
   .chat-wrapper:hover { transform: none; }
-  .team-card:hover { transform: none; }
+  .team-card { transform: none !important; }
+  .team-card::before, .team-card::after { display: none; }
   .chat-wrapper {
     box-shadow: var(--shadow-float), 0 0 0 1px var(--border);
   }
