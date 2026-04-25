@@ -8,6 +8,7 @@ import {
   parseUserId,
   type ThreadItem,
 } from '@/lib/openai';
+import InteractiveSurface from '@/components/InteractiveSurface';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,7 +180,7 @@ export default async function ThreadPage({
         </div>
       </header>
 
-      <section className="thread-meta">
+      <InteractiveSurface className="thread-meta" tilt={2}>
         <h1 className="thread-title">{thread.title ?? 'محادثة بدون عنوان'}</h1>
         <div className="thread-meta-grid">
           <div>
@@ -203,7 +204,7 @@ export default async function ThreadPage({
             <span className="thread-meta-value">{items.length}</span>
           </div>
         </div>
-      </section>
+      </InteractiveSurface>
 
       <section className="messages" aria-label="الرسائل">
         {items.length === 0 ? (
