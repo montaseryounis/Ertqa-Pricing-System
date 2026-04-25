@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase';
 import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
 import AnimatedNumber from './AnimatedNumber';
 import TeamCard from './TeamCard';
+import InteractiveSurface from '@/components/InteractiveSurface';
 
 export const dynamic = 'force-dynamic';
 
@@ -224,30 +225,30 @@ export default async function AdminPage({
       </header>
 
       <section className="admin-stats" aria-label="إحصائيات">
-        <div className="stat">
+        <InteractiveSurface className="stat" tilt={5}>
           <div className="stat-value">
             <AnimatedNumber value={totalConversations ?? 0} />
           </div>
           <div className="stat-label">إجمالي الجلسات</div>
-        </div>
-        <div className="stat">
+        </InteractiveSurface>
+        <InteractiveSurface className="stat" tilt={5}>
           <div className="stat-value">
             <AnimatedNumber value={uniqueUsers ?? 0} />
           </div>
           <div className="stat-label">الموظفون</div>
-        </div>
-        <div className="stat">
+        </InteractiveSurface>
+        <InteractiveSurface className="stat" tilt={5}>
           <div className="stat-value">
             <AnimatedNumber value={weekCount ?? 0} />
           </div>
           <div className="stat-label">آخر 7 أيام</div>
-        </div>
-        <div className="stat">
+        </InteractiveSurface>
+        <InteractiveSurface className="stat" tilt={5}>
           <div className="stat-value">
             <AnimatedNumber value={todayCount ?? 0} />
           </div>
           <div className="stat-label">اليوم</div>
-        </div>
+        </InteractiveSurface>
       </section>
 
       <section className="team-section" aria-label="الفريق">
