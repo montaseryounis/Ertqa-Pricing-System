@@ -87,6 +87,7 @@ a { color: inherit; text-decoration: none; }
   min-height: 100dvh;
   position: relative;
   z-index: 1;
+  perspective: 1500px;
 }
 
 .topbar {
@@ -221,7 +222,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 .chat-wrapper {
+  --mx: 50%;
+  --my: 50%;
+  --rx: 0deg;
+  --ry: 0deg;
   flex: 1;
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -229,18 +235,79 @@ a { color: inherit; text-decoration: none; }
   min-height: 520px;
   display: flex;
   margin: 8px 4px 16px;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
   animation:
     fadeInUp 0.7s 0.1s ease-out both,
     borderGlow 5s 1s ease-in-out infinite;
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    transform 0.25s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.35s ease,
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+/* Spotlight ring that follows the cursor on the chat panel */
+.chat-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: radial-gradient(
+    500px circle at var(--mx) var(--my),
+    rgba(179, 138, 63, 0.85),
+    rgba(179, 138, 63, 0.3) 28%,
+    transparent 60%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 3;
+}
+
+[data-theme='dark'] .chat-wrapper::before {
+  background: radial-gradient(
+    500px circle at var(--mx) var(--my),
+    rgba(212, 175, 102, 1),
+    rgba(212, 175, 102, 0.4) 28%,
+    transparent 60%
+  );
 }
 
 .chat-wrapper:hover {
-  transform: translateY(-2px);
+  animation-play-state: paused;
+  box-shadow:
+    var(--shadow-float),
+    0 0 0 1px var(--accent-soft),
+    0 0 50px -10px rgba(179, 138, 63, 0.22);
 }
 
-.chat-wrapper > * { flex: 1; width: 100%; min-height: 520px; }
+[data-theme='dark'] .chat-wrapper:hover {
+  box-shadow:
+    var(--shadow-float),
+    0 0 0 1px var(--accent-soft),
+    0 0 60px -10px rgba(212, 175, 102, 0.30);
+}
+
+.chat-wrapper:hover::before {
+  opacity: 1;
+}
+
+.chat-wrapper > * {
+  flex: 1;
+  width: 100%;
+  min-height: 520px;
+  position: relative;
+  z-index: 1;
+}
 
 .footer {
   display: flex;
@@ -402,8 +469,6 @@ a { color: inherit; text-decoration: none; }
   will-change: transform;
 }
 
-/* Spotlight ring that follows the cursor — uses a mask trick to keep
-   the radial gradient confined to the border area only. */
 .team-card::before {
   content: '';
   position: absolute;
@@ -436,7 +501,6 @@ a { color: inherit; text-decoration: none; }
   );
 }
 
-/* Subtle inner glow that also follows the cursor (gives depth) */
 .team-card::after {
   content: '';
   position: absolute;
@@ -943,7 +1007,8 @@ a { color: inherit; text-decoration: none; }
     transition: none !important;
     animation: none !important;
   }
-  .chat-wrapper:hover { transform: none; }
+  .chat-wrapper { transform: none !important; }
+  .chat-wrapper::before { display: none; }
   .team-card { transform: none !important; }
   .team-card::before, .team-card::after { display: none; }
   .chat-wrapper {
