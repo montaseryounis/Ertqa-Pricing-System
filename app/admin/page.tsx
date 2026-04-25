@@ -3,6 +3,7 @@ import { UserButton } from '@clerk/nextjs';
 import { createAdminClient } from '@/lib/supabase';
 import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
 import AnimatedNumber from './AnimatedNumber';
+import TeamCard from './TeamCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,8 +109,6 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
-// Fetch users defensively. If image_url column doesn't exist yet, fall back
-// to selecting the legacy columns so the page still renders correctly.
 async function fetchUsers(
   supabase: ReturnType<typeof createAdminClient>
 ): Promise<UserRow[]> {
@@ -120,7 +119,6 @@ async function fetchUsers(
     return (withImage.data ?? []) as UserRow[];
   }
 
-  // Likely missing image_url column. Fall back without it.
   const legacy = await supabase
     .from('users')
     .select('id, email, full_name, role');
@@ -260,11 +258,10 @@ export default async function AdminPage({
           </span>
         </div>
         <div className="team-grid">
-          <Link
+          <TeamCard
             href="/admin"
-            className={`team-card team-card-all ${
-              selectedUserId ? '' : 'team-card-active'
-            }`}
+            className="team-card-all"
+            isActive={!selectedUserId}
           >
             <div className="team-avatar team-avatar-all">∑</div>
             <div className="team-card-body">
@@ -273,16 +270,16 @@ export default async function AdminPage({
                 {allThreads.length} محادثة
               </div>
             </div>
-          </Link>
+          </TeamCard>
 
           {userCards.map((u) => {
             const active = u.lastActivity && isActiveToday(u.lastActivity);
             const selected = selectedUserId === u.id;
             return (
-              <Link
+              <TeamCard
                 key={u.id}
                 href={`/admin?user=${u.id}`}
-                className={`team-card ${selected ? 'team-card-active' : ''}`}
+                isActive={selected}
               >
                 <div className="team-avatar">
                   {u.image_url ? (
@@ -313,7 +310,7 @@ export default async function AdminPage({
                   </div>
                   <Sparkline data={u.spark} />
                 </div>
-              </Link>
+              </TeamCard>
             );
           })}
         </div>
