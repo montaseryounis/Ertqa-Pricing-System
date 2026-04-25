@@ -9,20 +9,21 @@ type Props = {
   ariaLabel?: string;
 };
 
-// Generic interactive wrapper. Tracks mouse position and writes
-// CSS variables --mx/--my (spotlight) plus optional --rx/--ry (3D
-// tilt). Use for any surface that should react to the cursor.
+// Generic interactive surface. Tracks pointer position and writes
+// CSS variables --mx/--my (spotlight) plus optional --rx/--ry (tilt)
+// onto a div wrapper. Use for any surface that should react to the
+// cursor (chat panel, stat cards, thread meta, etc.).
 export default function InteractiveSurface({
   children,
   className = '',
   tilt = 0,
   ariaLabel,
 }: Props) {
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   return (
-    <section
-      ref={ref as React.RefObject<HTMLElement>}
+    <div
+      ref={ref}
       className={className}
       aria-label={ariaLabel}
       onMouseMove={(event) => {
@@ -48,6 +49,6 @@ export default function InteractiveSurface({
       }}
     >
       {children}
-    </section>
+    </div>
   );
 }
