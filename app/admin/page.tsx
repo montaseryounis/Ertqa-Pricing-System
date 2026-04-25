@@ -5,11 +5,40 @@ import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
 
 export const dynamic = 'force-dynamic';
 
+type UserRow = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+};
+
+type UserCardData = UserRow & {
+  count: number;
+  lastActivity: number | undefined;
+};
+
 function formatDate(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString('ar-SA', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+}
+
+function relativeTime(unixSeconds: number | undefined): string {
+  if (!unixSeconds) return 'لم يبدأ بعد';
+  const diffSec = Date.now() / 1000 - unixSeconds;
+  if (diffSec < 60) return 'الآن';
+  if (diffSec < 3600) return `منذ ${Math.floor(diffSec / 60)} دقيقة`;
+  if (diffSec < 86400) return `منذ ${Math.floor(diffSec / 3600)} ساعة`;
+  if (diffSec < 604800) return `منذ ${Math.floor(diffSec / 86400)} يوم`;
+  return new Date(unixSeconds * 1000).toLocaleDateString('ar-SA', {
+    dateStyle: 'medium',
+  });
+}
+
+function isActiveToday(unixSeconds: number | undefined): boolean {
+  if (!unixSeconds) return false;
+  return Date.now() / 1000 - unixSeconds < 86400;
 }
 
 function statusLabel(status: ThreadSummary['status']): string {
@@ -25,41 +54,68 @@ function startOfDayIso(offsetDays = 0): string {
   return d.toISOString();
 }
 
-export default async function AdminPage() {
+function initial(name: string | null, fallback: string): string {
+  const source = (name && name.trim()) || fallback;
+  return source.slice(0, 1).toUpperCase();
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ user?: string }>;
+}) {
+  const { user: selectedUserId } = await searchParams;
+
   const supabase = createAdminClient();
 
-  let threads: ThreadSummary[] = [];
+  let allThreads: ThreadSummary[] = [];
   let threadsError: string | null = null;
   try {
     const res = await listThreads({ limit: 100, order: 'desc' });
-    threads = res.data;
+    allThreads = res.data;
   } catch (error) {
     threadsError = error instanceof Error ? error.message : 'Unknown error';
   }
 
-  const userIds = Array.from(
-    new Set(
-      threads
-        .map((t) => parseUserId(t.user))
-        .filter((id): id is string => Boolean(id))
-    )
-  );
-  const { data: users } = userIds.length
-    ? await supabase
-        .from('users')
-        .select('id, email, full_name, role')
-        .in('id', userIds)
-    : { data: [] };
-  const userMap = new Map(
-    (users ?? []).map(
-      (u: {
-        id: string;
-        email: string;
-        full_name: string | null;
-        role: string;
-      }) => [u.id, u]
-    )
-  );
+  const { data: usersData } = await supabase
+    .from('users')
+    .select('id, email, full_name, role');
+  const users = (usersData ?? []) as UserRow[];
+
+  const threadsByUser = new Map<string, ThreadSummary[]>();
+  for (const t of allThreads) {
+    const uid = parseUserId(t.user);
+    if (!uid) continue;
+    const list = threadsByUser.get(uid);
+    if (list) list.push(t);
+    else threadsByUser.set(uid, [t]);
+  }
+
+  const userCards: UserCardData[] = users
+    .map((u) => {
+      const userThreads = threadsByUser.get(u.id) ?? [];
+      return {
+        ...u,
+        count: userThreads.length,
+        lastActivity: userThreads[0]?.created_at,
+      };
+    })
+    .sort((a, b) => {
+      const aTime = a.lastActivity ?? 0;
+      const bTime = b.lastActivity ?? 0;
+      if (aTime !== bTime) return bTime - aTime;
+      return (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email);
+    });
+
+  const selectedUser = selectedUserId
+    ? users.find((u) => u.id === selectedUserId) ?? null
+    : null;
+
+  const visibleThreads = selectedUserId
+    ? allThreads.filter((t) => parseUserId(t.user) === selectedUserId)
+    : allThreads;
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
 
   const [
     { count: totalConversations },
@@ -120,18 +176,79 @@ export default async function AdminPage() {
         </div>
       </section>
 
+      <section className="team-section" aria-label="الفريق">
+        <div className="team-section-header">
+          <h2>الفريق</h2>
+          <span className="admin-subtle">
+            اضغط على بطاقة لعرض محادثات هذا الموظف فقط
+          </span>
+        </div>
+        <div className="team-grid">
+          <Link
+            href="/admin"
+            className={`team-card team-card-all ${
+              selectedUserId ? '' : 'team-card-active'
+            }`}
+          >
+            <div className="team-avatar team-avatar-all">∑</div>
+            <div className="team-card-body">
+              <div className="team-card-name">الكل</div>
+              <div className="team-card-meta">
+                {allThreads.length} محادثة
+              </div>
+            </div>
+          </Link>
+
+          {userCards.map((u) => {
+            const active = u.lastActivity && isActiveToday(u.lastActivity);
+            const selected = selectedUserId === u.id;
+            return (
+              <Link
+                key={u.id}
+                href={`/admin?user=${u.id}`}
+                className={`team-card ${selected ? 'team-card-active' : ''}`}
+              >
+                <div className="team-avatar">
+                  {initial(u.full_name, u.email)}
+                  {active && <span className="team-active-dot" aria-hidden />}
+                </div>
+                <div className="team-card-body">
+                  <div className="team-card-name-row">
+                    <span className="team-card-name">
+                      {u.full_name ?? u.email}
+                    </span>
+                    <span className={`role-badge role-${u.role}`}>
+                      {u.role === 'admin' ? 'أدمن' : 'مبيعات'}
+                    </span>
+                  </div>
+                  <div className="team-card-meta">
+                    {u.count} محادثة · {relativeTime(u.lastActivity)}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="admin-table-wrap">
         <div className="admin-table-header">
-          <h2>المحادثات</h2>
+          <h2>
+            {selectedUser
+              ? `محادثات ${selectedUser.full_name ?? selectedUser.email}`
+              : 'المحادثات'}
+          </h2>
           <span className="admin-subtle">
             {threadsError
               ? `فشل تحميل المحادثات: ${threadsError}`
-              : `تعرض ${threads.length} محادثة (الحد الأقصى 100)`}
+              : `تعرض ${visibleThreads.length} محادثة (الحد الأقصى 100)`}
           </span>
         </div>
-        {threads.length === 0 && !threadsError ? (
+        {visibleThreads.length === 0 && !threadsError ? (
           <div className="admin-empty">
-            لا توجد محادثات فعلية بعد. ابدأ محادثة من الصفحة الرئيسية.
+            {selectedUser
+              ? 'لا توجد محادثات لهذا الموظف بعد.'
+              : 'لا توجد محادثات فعلية بعد. ابدأ محادثة من الصفحة الرئيسية.'}
           </div>
         ) : (
           <div className="admin-table-scroll">
@@ -147,14 +264,14 @@ export default async function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {threads.map((t) => {
+                {visibleThreads.map((t) => {
                   const userId = parseUserId(t.user);
-                  const user = userId ? userMap.get(userId) : undefined;
+                  const u = userId ? userMap.get(userId) : undefined;
                   return (
                     <tr key={t.id}>
                       <td>{formatDate(t.created_at)}</td>
-                      <td>{user?.full_name ?? '—'}</td>
-                      <td className="admin-email">{user?.email ?? t.user}</td>
+                      <td>{u?.full_name ?? '—'}</td>
+                      <td className="admin-email">{u?.email ?? t.user}</td>
                       <td>{t.title ?? '—'}</td>
                       <td>
                         <span className={`role-badge role-${t.status.type}`}>
