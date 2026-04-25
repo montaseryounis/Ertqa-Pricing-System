@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ChatKitPanel from '@/components/ChatKitPanel';
 import ThemeToggle from '@/components/ThemeToggle';
+import InteractiveSurface from '@/components/InteractiveSurface';
 import { UserButton } from '@clerk/nextjs';
 import { isAdminUser } from '@/lib/admin';
 
@@ -39,9 +40,13 @@ export default async function HomePage() {
         </p>
       </header>
 
-      <section className="chat-wrapper" aria-label="ChatKit">
+      <InteractiveSurface
+        className="chat-wrapper"
+        tilt={1.5}
+        ariaLabel="ChatKit"
+      >
         <ChatKitPanel />
-      </section>
+      </InteractiveSurface>
 
       <footer className="footer">
         <span>© {new Date().getFullYear()} ارتقاء · ERTQA</span>
