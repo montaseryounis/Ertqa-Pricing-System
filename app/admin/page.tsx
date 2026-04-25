@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import { createAdminClient } from '@/lib/supabase';
 import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
+import AnimatedNumber from './AnimatedNumber';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,12 +10,14 @@ type UserRow = {
   id: string;
   email: string;
   full_name: string | null;
+  image_url: string | null;
   role: string;
 };
 
 type UserCardData = UserRow & {
   count: number;
   lastActivity: number | undefined;
+  spark: number[];
 };
 
 function formatDate(unixSeconds: number): string {
@@ -59,6 +62,54 @@ function initial(name: string | null, fallback: string): string {
   return source.slice(0, 1).toUpperCase();
 }
 
+// Build a 7-bucket array of thread counts for the last 7 days.
+// Index 0 = 6 days ago, index 6 = today.
+function computeSparkline(threads: ThreadSummary[]): number[] {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const buckets = new Array(7).fill(0);
+  for (const t of threads) {
+    const d = new Date(t.created_at * 1000);
+    d.setHours(0, 0, 0, 0);
+    const daysAgo = Math.floor((now.getTime() - d.getTime()) / 86400000);
+    if (daysAgo >= 0 && daysAgo < 7) {
+      buckets[6 - daysAgo]++;
+    }
+  }
+  return buckets;
+}
+
+function Sparkline({ data }: { data: number[] }) {
+  const max = Math.max(1, ...data);
+  const barWidth = 7;
+  const gap = 3;
+  const chartHeight = 18;
+  return (
+    <svg
+      viewBox={`0 0 ${data.length * (barWidth + gap)} ${chartHeight}`}
+      className="sparkline"
+      aria-hidden="true"
+      preserveAspectRatio="none"
+    >
+      {data.map((value, i) => {
+        const h = max > 0 ? (value / max) * (chartHeight - 2) : 0;
+        return (
+          <rect
+            key={i}
+            x={i * (barWidth + gap)}
+            y={chartHeight - Math.max(h, 2)}
+            width={barWidth}
+            height={Math.max(h, 2)}
+            rx={1.5}
+            className="sparkline-bar"
+            opacity={value === 0 ? 0.25 : 0.9}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -79,7 +130,7 @@ export default async function AdminPage({
 
   const { data: usersData } = await supabase
     .from('users')
-    .select('id, email, full_name, role');
+    .select('id, email, full_name, image_url, role');
   const users = (usersData ?? []) as UserRow[];
 
   const threadsByUser = new Map<string, ThreadSummary[]>();
@@ -98,6 +149,7 @@ export default async function AdminPage({
         ...u,
         count: userThreads.length,
         lastActivity: userThreads[0]?.created_at,
+        spark: computeSparkline(userThreads),
       };
     })
     .sort((a, b) => {
@@ -159,19 +211,27 @@ export default async function AdminPage({
 
       <section className="admin-stats" aria-label="إحصائيات">
         <div className="stat">
-          <div className="stat-value">{totalConversations ?? 0}</div>
+          <div className="stat-value">
+            <AnimatedNumber value={totalConversations ?? 0} />
+          </div>
           <div className="stat-label">إجمالي الجلسات</div>
         </div>
         <div className="stat">
-          <div className="stat-value">{uniqueUsers ?? 0}</div>
+          <div className="stat-value">
+            <AnimatedNumber value={uniqueUsers ?? 0} />
+          </div>
           <div className="stat-label">الموظفون</div>
         </div>
         <div className="stat">
-          <div className="stat-value">{weekCount ?? 0}</div>
+          <div className="stat-value">
+            <AnimatedNumber value={weekCount ?? 0} />
+          </div>
           <div className="stat-label">آخر 7 أيام</div>
         </div>
         <div className="stat">
-          <div className="stat-value">{todayCount ?? 0}</div>
+          <div className="stat-value">
+            <AnimatedNumber value={todayCount ?? 0} />
+          </div>
           <div className="stat-label">اليوم</div>
         </div>
       </section>
@@ -209,7 +269,18 @@ export default async function AdminPage({
                 className={`team-card ${selected ? 'team-card-active' : ''}`}
               >
                 <div className="team-avatar">
-                  {initial(u.full_name, u.email)}
+                  {u.image_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={u.image_url}
+                      alt={u.full_name ?? u.email}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="team-avatar-initial">
+                      {initial(u.full_name, u.email)}
+                    </span>
+                  )}
                   {active && <span className="team-active-dot" aria-hidden />}
                 </div>
                 <div className="team-card-body">
@@ -224,6 +295,7 @@ export default async function AdminPage({
                   <div className="team-card-meta">
                     {u.count} محادثة · {relativeTime(u.lastActivity)}
                   </div>
+                  <Sparkline data={u.spark} />
                 </div>
               </Link>
             );

@@ -21,6 +21,7 @@ export type UserRow = {
   id: string;
   email: string;
   full_name: string | null;
+  image_url: string | null;
   role: 'admin' | 'sales';
   created_at: string;
 };

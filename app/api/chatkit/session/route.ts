@@ -80,9 +80,9 @@ export async function POST(request: Request) {
     null;
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || null;
+  const imageUrl = user?.imageUrl ?? null;
   const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'sales';
 
-  // Create ChatKit session first - if OpenAI rejects, we don't log anything.
   const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
     method: 'POST',
     headers: {
@@ -113,8 +113,6 @@ export async function POST(request: Request) {
 
   const session = (await response.json()) as ChatKitSessionResponse;
 
-  // Best-effort logging to Supabase. We never block the user's chat on
-  // logging failures - a missing row is a lot less painful than a stuck UI.
   if (email) {
     try {
       const supabase = createAdminClient();
@@ -124,6 +122,7 @@ export async function POST(request: Request) {
             id: userId,
             email,
             full_name: fullName,
+            image_url: imageUrl,
             role,
           },
           { onConflict: 'id' }
