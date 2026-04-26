@@ -112,6 +112,30 @@
   z-index: 1;
 }
 
+/* ===== Solid darker backgrounds for thread-meta and stat cards ===== */
+
+.thread-meta {
+  background: #FFFFFF !important;
+  border-color: var(--accent-soft) !important;
+}
+
+[data-theme='dark'] .thread-meta {
+  background: #0F1623 !important;
+  border-color: rgba(212, 175, 102, 0.30) !important;
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 1px rgba(212, 175, 102, 0.08) !important;
+}
+
+.stat {
+  background: #FFFFFF !important;
+}
+
+[data-theme='dark'] .stat {
+  background: #0F1623 !important;
+  border-color: rgba(212, 175, 102, 0.18) !important;
+}
+
 /* ===== Stronger contrast for message bubbles in admin thread viewer ===== */
 
 .msg-assistant {
@@ -130,7 +154,7 @@
 }
 
 [data-theme='dark'] .msg-user {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: #0F1623 !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
@@ -140,7 +164,7 @@
 }
 
 [data-theme='dark'] .msg-widget {
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: #0F1623 !important;
   border-color: rgba(212, 175, 102, 0.40) !important;
 }
 
