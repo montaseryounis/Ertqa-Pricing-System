@@ -112,6 +112,38 @@
   z-index: 1;
 }
 
+/* ===== Stronger contrast for message bubbles in admin thread viewer ===== */
+
+.msg-assistant {
+  background: rgba(179, 138, 63, 0.18) !important;
+  border-color: rgba(179, 138, 63, 0.45) !important;
+}
+
+[data-theme='dark'] .msg-assistant {
+  background: rgba(212, 175, 102, 0.22) !important;
+  border-color: rgba(212, 175, 102, 0.45) !important;
+}
+
+.msg-user {
+  background: rgba(31, 41, 55, 0.05) !important;
+  border-color: rgba(31, 41, 55, 0.18) !important;
+}
+
+[data-theme='dark'] .msg-user {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.msg-widget {
+  background: rgba(31, 41, 55, 0.05) !important;
+  border-color: rgba(179, 138, 63, 0.40) !important;
+}
+
+[data-theme='dark'] .msg-widget {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(212, 175, 102, 0.40) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stat,
   .thread-meta { transform: none !important; }
