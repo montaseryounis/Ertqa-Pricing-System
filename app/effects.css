@@ -1,0 +1,120 @@
+/* Interactive surface effects: spotlight border + 3D tilt for stat
+   cards and the thread meta card. Layered on top of globals.css. */
+
+.admin-page { perspective: 1500px; }
+.admin-stats { perspective: 1100px; }
+
+.stat,
+.thread-meta {
+  --mx: 50%;
+  --my: 50%;
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+.stat::before,
+.thread-meta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.stat::before {
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    rgba(179, 138, 63, 0.95),
+    rgba(179, 138, 63, 0.3) 25%,
+    transparent 55%
+  );
+}
+
+[data-theme='dark'] .stat::before {
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    rgba(212, 175, 102, 1),
+    rgba(212, 175, 102, 0.4) 25%,
+    transparent 55%
+  );
+}
+
+.thread-meta::before {
+  background: radial-gradient(
+    380px circle at var(--mx) var(--my),
+    rgba(179, 138, 63, 0.85),
+    rgba(179, 138, 63, 0.3) 28%,
+    transparent 60%
+  );
+}
+
+[data-theme='dark'] .thread-meta::before {
+  background: radial-gradient(
+    380px circle at var(--mx) var(--my),
+    rgba(212, 175, 102, 1),
+    rgba(212, 175, 102, 0.4) 28%,
+    transparent 60%
+  );
+}
+
+.stat:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 18px 32px -10px rgba(17, 24, 39, 0.18),
+    0 6px 12px -6px rgba(179, 138, 63, 0.15);
+}
+
+[data-theme='dark'] .stat:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 22px 36px -12px rgba(0, 0, 0, 0.55),
+    0 0 22px -8px rgba(212, 175, 102, 0.18);
+}
+
+.thread-meta:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 22px 38px -10px rgba(17, 24, 39, 0.20),
+    0 8px 16px -8px rgba(179, 138, 63, 0.18);
+}
+
+[data-theme='dark'] .thread-meta:hover {
+  box-shadow:
+    var(--shadow-sm),
+    0 26px 42px -12px rgba(0, 0, 0, 0.60),
+    0 0 28px -8px rgba(212, 175, 102, 0.22);
+}
+
+.stat:hover::before,
+.thread-meta:hover::before { opacity: 1; }
+
+.stat-value,
+.stat-label,
+.thread-meta > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat,
+  .thread-meta { transform: none !important; }
+  .stat::before,
+  .thread-meta::before { display: none; }
+}

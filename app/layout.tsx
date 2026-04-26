@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { arSA } from '@clerk/localizations';
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
+import './effects.css';
 
 export const metadata: Metadata = {
   title: 'ارتقاء · وكيل التسعير الذكي',
