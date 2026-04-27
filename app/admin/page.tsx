@@ -22,6 +22,14 @@ type UserCardData = UserRow & {
   spark: number[];
 };
 
+type ConvRow = {
+  user_id: string;
+  started_at: string;
+  customer_name: string | null;
+  quote_reference: string | null;
+  session_id: string | null;
+};
+
 function formatDate(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString('ar-SA', {
     dateStyle: 'medium',
@@ -128,6 +136,65 @@ async function fetchUsers(
   return (legacy.data as LegacyRow[]).map((u) => ({ ...u, image_url: null }));
 }
 
+// Fetch recent conversations and tolerate the case where quote_reference
+// hasn't been added yet.
+async function fetchRecentConversations(
+  supabase: ReturnType<typeof createAdminClient>,
+  userIds: string[]
+): Promise<ConvRow[]> {
+  if (userIds.length === 0) return [];
+  const since = new Date(Date.now() - 90 * 86400 * 1000).toISOString();
+
+  const withRef = await supabase
+    .from('conversations')
+    .select('user_id, started_at, customer_name, quote_reference, session_id')
+    .in('user_id', userIds)
+    .gte('started_at', since)
+    .order('started_at', { ascending: false });
+
+  if (!withRef.error) return (withRef.data ?? []) as ConvRow[];
+
+  const legacy = await supabase
+    .from('conversations')
+    .select('user_id, started_at, customer_name, session_id')
+    .in('user_id', userIds)
+    .gte('started_at', since)
+    .order('started_at', { ascending: false });
+  if (legacy.error) return [];
+  type LegacyRow = Omit<ConvRow, 'quote_reference'>;
+  return (legacy.data as LegacyRow[]).map((c) => ({
+    ...c,
+    quote_reference: null,
+  }));
+}
+
+// Match a thread to the closest conversation row for the same user
+// (within ~10 minutes, since the first thread is created shortly
+// after the session). Returns null if no plausible match.
+function matchConversation(
+  threadUser: string,
+  threadCreatedAt: number,
+  convsByUser: Map<string, ConvRow[]>
+): ConvRow | null {
+  const userId = parseUserId(threadUser);
+  if (!userId) return null;
+  const list = convsByUser.get(userId);
+  if (!list || list.length === 0) return null;
+
+  const threadMs = threadCreatedAt * 1000;
+  let best: ConvRow | null = null;
+  let bestDiff = 10 * 60 * 1000; // 10 min window
+  for (const c of list) {
+    const cMs = new Date(c.started_at).getTime();
+    const diff = Math.abs(threadMs - cMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = c;
+    }
+  }
+  return best;
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -183,6 +250,23 @@ export default async function AdminPage({
     : allThreads;
 
   const userMap = new Map(users.map((u) => [u.id, u]));
+
+  // Pull conversation rows for every user that owns a visible thread,
+  // then bucket them so matchConversation() is O(1) lookup per thread.
+  const visibleUserIds = Array.from(
+    new Set(
+      visibleThreads
+        .map((t) => parseUserId(t.user))
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+  const conversations = await fetchRecentConversations(supabase, visibleUserIds);
+  const convsByUser = new Map<string, ConvRow[]>();
+  for (const c of conversations) {
+    const list = convsByUser.get(c.user_id);
+    if (list) list.push(c);
+    else convsByUser.set(c.user_id, [c]);
+  }
 
   const [
     { count: totalConversations },
@@ -343,7 +427,8 @@ export default async function AdminPage({
                 <tr>
                   <th>التاريخ</th>
                   <th>الموظف</th>
-                  <th>الإيميل</th>
+                  <th>العميل</th>
+                  <th>رقم العرض</th>
                   <th>العنوان</th>
                   <th>الحالة</th>
                   <th></th>
@@ -353,11 +438,19 @@ export default async function AdminPage({
                 {visibleThreads.map((t) => {
                   const userId = parseUserId(t.user);
                   const u = userId ? userMap.get(userId) : undefined;
+                  const conv = matchConversation(
+                    t.user,
+                    t.created_at,
+                    convsByUser
+                  );
                   return (
                     <tr key={t.id}>
                       <td>{formatDate(t.created_at)}</td>
                       <td>{u?.full_name ?? '—'}</td>
-                      <td className="admin-email">{u?.email ?? t.user}</td>
+                      <td>{conv?.customer_name ?? '—'}</td>
+                      <td className="quote-ref-cell">
+                        {conv?.quote_reference ?? '—'}
+                      </td>
                       <td>{t.title ?? '—'}</td>
                       <td>
                         <span className={`role-badge role-${t.status.type}`}>
