@@ -381,6 +381,17 @@
   transform: translateY(-1px);
 }
 
+/* ===== Quote reference cell (admin table + thread meta) ===== */
+
+.quote-ref-cell {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  direction: ltr;
+  display: inline-block;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stat,
   .thread-meta { transform: none !important; }
