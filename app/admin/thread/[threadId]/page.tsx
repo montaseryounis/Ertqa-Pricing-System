@@ -18,6 +18,12 @@ type UserInfo = {
   role: string;
 };
 
+type ConvInfo = {
+  customer_name: string | null;
+  quote_reference: string | null;
+  started_at: string;
+};
+
 function formatDateTime(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleString('ar-SA', {
     dateStyle: 'medium',
@@ -33,6 +39,63 @@ function formatTime(unixSeconds: number): string {
 
 function Attachment({ name }: { name: string }) {
   return <span className="attachment-chip">📎 {name}</span>;
+}
+
+async function fetchClosestConversation(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  threadCreatedAt: number
+): Promise<ConvInfo | null> {
+  const threadMs = threadCreatedAt * 1000;
+  const window = 10 * 60 * 1000;
+  const since = new Date(threadMs - window).toISOString();
+  const until = new Date(threadMs + window).toISOString();
+
+  const withRef = await supabase
+    .from('conversations')
+    .select('customer_name, quote_reference, started_at')
+    .eq('user_id', userId)
+    .gte('started_at', since)
+    .lte('started_at', until)
+    .order('started_at', { ascending: true });
+
+  if (withRef.error) {
+    const legacy = await supabase
+      .from('conversations')
+      .select('customer_name, started_at')
+      .eq('user_id', userId)
+      .gte('started_at', since)
+      .lte('started_at', until)
+      .order('started_at', { ascending: true });
+    if (legacy.error || !legacy.data?.length) return null;
+    type LegacyRow = Omit<ConvInfo, 'quote_reference'>;
+    const rows = legacy.data as LegacyRow[];
+    let best = rows[0];
+    let bestDiff = Math.abs(
+      new Date(best.started_at).getTime() - threadMs
+    );
+    for (const r of rows) {
+      const diff = Math.abs(new Date(r.started_at).getTime() - threadMs);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = r;
+      }
+    }
+    return { ...best, quote_reference: null };
+  }
+
+  const rows = (withRef.data ?? []) as ConvInfo[];
+  if (rows.length === 0) return null;
+  let best = rows[0];
+  let bestDiff = Math.abs(new Date(best.started_at).getTime() - threadMs);
+  for (const r of rows) {
+    const diff = Math.abs(new Date(r.started_at).getTime() - threadMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = r;
+    }
+  }
+  return best;
 }
 
 function MessageBubble({ item }: { item: ThreadItem }) {
@@ -156,15 +219,21 @@ export default async function ThreadPage({
   const items = itemsRes.data;
 
   const userId = parseUserId(thread.user);
+  const supabase = createAdminClient();
+
   let user: UserInfo | null = null;
+  let conv: ConvInfo | null = null;
   if (userId) {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from('users')
-      .select('email, full_name, role')
-      .eq('id', userId)
-      .maybeSingle();
-    user = (data as UserInfo | null) ?? null;
+    const [userRes, convRes] = await Promise.all([
+      supabase
+        .from('users')
+        .select('email, full_name, role')
+        .eq('id', userId)
+        .maybeSingle(),
+      fetchClosestConversation(supabase, userId, thread.created_at),
+    ]);
+    user = (userRes.data as UserInfo | null) ?? null;
+    conv = convRes;
   }
 
   return (
@@ -183,6 +252,18 @@ export default async function ThreadPage({
       <InteractiveSurface className="thread-meta" tilt={2}>
         <h1 className="thread-title">{thread.title ?? 'محادثة بدون عنوان'}</h1>
         <div className="thread-meta-grid">
+          <div>
+            <span className="thread-meta-label">العميل</span>
+            <span className="thread-meta-value">
+              {conv?.customer_name ?? '—'}
+            </span>
+          </div>
+          <div>
+            <span className="thread-meta-label">رقم العرض</span>
+            <span className="thread-meta-value quote-ref-cell">
+              {conv?.quote_reference ?? '—'}
+            </span>
+          </div>
           <div>
             <span className="thread-meta-label">الموظف</span>
             <span className="thread-meta-value">{user?.full_name ?? '—'}</span>
