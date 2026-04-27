@@ -83,6 +83,20 @@ export async function POST(request: Request) {
   const imageUrl = user?.imageUrl ?? null;
   const role = email === process.env.ADMIN_EMAIL ? 'admin' : 'sales';
 
+  let customerName: string | null = null;
+  let quoteRef: string | null = null;
+  try {
+    const body = await request.json();
+    if (typeof body?.customerName === 'string') {
+      customerName = body.customerName.trim().slice(0, 200) || null;
+    }
+    if (typeof body?.quoteRef === 'string') {
+      quoteRef = body.quoteRef.trim().slice(0, 100) || null;
+    }
+  } catch {
+    // empty body is acceptable
+  }
+
   const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
     method: 'POST',
     headers: {
@@ -132,6 +146,8 @@ export async function POST(request: Request) {
           user_email: email,
           session_id: session.id ?? null,
           workflow_id: workflowId,
+          customer_name: customerName,
+          quote_reference: quoteRef,
         }),
       ]);
     } catch (error) {

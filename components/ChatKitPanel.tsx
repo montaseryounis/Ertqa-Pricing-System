@@ -17,7 +17,12 @@ function getOrCreateDeviceId(): string {
   return id;
 }
 
-export default function ChatKitPanel() {
+type Props = {
+  customerName?: string;
+  quoteRef?: string;
+};
+
+export default function ChatKitPanel({ customerName, quoteRef }: Props) {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
@@ -35,7 +40,11 @@ export default function ChatKitPanel() {
     const response = await fetch('/api/chatkit/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: getOrCreateDeviceId() }),
+      body: JSON.stringify({
+        deviceId: getOrCreateDeviceId(),
+        customerName,
+        quoteRef,
+      }),
     });
 
     if (!response.ok) {
@@ -45,7 +54,11 @@ export default function ChatKitPanel() {
 
     const data = (await response.json()) as { client_secret: string };
     return data.client_secret;
-  }, []);
+  }, [customerName, quoteRef]);
+
+  const greeting = customerName
+    ? `مرحباً — تسعير لـ${customerName}. كيف يمكنني مساعدتك؟`
+    : 'مرحباً بك في وكيل ارتقاء الذكي — كيف يمكنني مساعدتك';
 
   const { control } = useChatKit({
     api: { getClientSecret },
@@ -57,7 +70,7 @@ export default function ChatKitPanel() {
       radius: 'round',
     },
     startScreen: {
-      greeting: 'مرحباً بك في وكيل ارتقاء الذكي — كيف يمكنني مساعدتك',
+      greeting,
       prompts: [],
     },
     composer: {
