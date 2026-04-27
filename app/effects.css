@@ -168,9 +168,224 @@
   border-color: rgba(212, 175, 102, 0.40) !important;
 }
 
+/* ===== Customer info form (pre-chat gate) ===== */
+
+.chat-wrapper-form {
+  align-items: stretch;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.chat-wrapper-form > * {
+  min-height: auto !important;
+}
+
+.chat-wrapper-loading {
+  background: var(--surface);
+}
+
+.customer-form {
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 8px;
+}
+
+.customer-form-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.customer-form-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.customer-form-header p {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.customer-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: right;
+}
+
+.customer-form .field > span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.customer-form .field input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.customer-form .field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.customer-form .field-hint {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.ref-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ref-input {
+  flex: 1;
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-size: 14px !important;
+  letter-spacing: 0.04em;
+}
+
+.ref-regen {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 18px;
+  font-family: inherit;
+  transition: transform 0.2s ease, border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.ref-regen:hover {
+  border-color: var(--accent-soft);
+  background: var(--surface);
+  transform: rotate(90deg);
+}
+
+.customer-form-submit {
+  margin-top: 6px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 16px -6px rgba(179, 138, 63, 0.5);
+}
+
+.customer-form-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -6px rgba(179, 138, 63, 0.6);
+}
+
+.customer-form-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ===== Quote meta bar (above chat after form submitted) ===== */
+
+.quote-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--accent-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin: 0 4px 8px;
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+[data-theme='dark'] .quote-meta {
+  background: #0F1623;
+  border-color: rgba(212, 175, 102, 0.30);
+}
+
+.quote-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quote-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+}
+
+.quote-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-meta-ref {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+  direction: ltr;
+}
+
+.new-chat-btn {
+  margin-inline-start: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--accent-soft);
+  color: var(--accent);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease;
+}
+
+.new-chat-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stat,
   .thread-meta { transform: none !important; }
   .stat::before,
   .thread-meta::before { display: none; }
+  .ref-regen:hover { transform: none; }
+  .customer-form-submit:hover { transform: none; }
 }
