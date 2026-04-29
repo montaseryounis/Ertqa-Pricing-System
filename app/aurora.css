@@ -1,0 +1,93 @@
+/* Animated aurora gradient blobs that drift behind the existing
+   pattern + radial backdrop. Layer is purely decorative. */
+
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.aurora-bg::before {
+  width: 70vmax;
+  height: 70vmax;
+  top: -20vmax;
+  inset-inline-start: -20vmax;
+  background: radial-gradient(
+    circle at center,
+    rgba(179, 138, 63, 0.45),
+    rgba(179, 138, 63, 0.15) 40%,
+    transparent 70%
+  );
+  animation: aurora-drift-1 22s ease-in-out infinite;
+}
+
+.aurora-bg::after {
+  width: 60vmax;
+  height: 60vmax;
+  bottom: -15vmax;
+  inset-inline-end: -15vmax;
+  background: radial-gradient(
+    circle at center,
+    rgba(232, 199, 122, 0.35),
+    rgba(232, 199, 122, 0.10) 45%,
+    transparent 70%
+  );
+  animation: aurora-drift-2 28s ease-in-out infinite;
+}
+
+[data-theme='light'] .aurora-bg::before,
+[data-theme='light'] .aurora-bg::after {
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
+
+[data-theme='dark'] .aurora-bg::before {
+  background: radial-gradient(
+    circle at center,
+    rgba(212, 175, 102, 0.55),
+    rgba(212, 175, 102, 0.18) 40%,
+    transparent 70%
+  );
+  opacity: 0.55;
+}
+
+[data-theme='dark'] .aurora-bg::after {
+  background: radial-gradient(
+    circle at center,
+    rgba(243, 216, 149, 0.40),
+    rgba(243, 216, 149, 0.10) 45%,
+    transparent 70%
+  );
+  opacity: 0.45;
+}
+
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(20vmax, 15vmax) scale(1.15); }
+  66%      { transform: translate(-5vmax, 30vmax) scale(0.9); }
+}
+
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-25vmax, -10vmax) scale(1.1); }
+  66%      { transform: translate(15vmax, -25vmax) scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-bg::before,
+  .aurora-bg::after { animation: none; }
+}
