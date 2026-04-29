@@ -1,0 +1,31 @@
+/* Typewriter cursor — gold caret that blinks while typing, then
+   slow-blinks and fades after the title finishes. */
+
+.typewriter-cursor {
+  display: inline-block;
+  margin-inline-start: 0.08em;
+  color: var(--accent);
+  font-weight: 400;
+  animation: typewriter-blink 0.7s step-end infinite;
+  transform: translateY(-0.05em);
+}
+
+.typewriter-cursor-done {
+  animation:
+    typewriter-blink 1.05s step-end 4,
+    typewriter-fade 0.5s 4.2s forwards;
+}
+
+@keyframes typewriter-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes typewriter-fade {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter-cursor,
+  .typewriter-cursor-done { display: none; }
+}
