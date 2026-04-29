@@ -2,12 +2,15 @@ import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import { createAdminClient } from '@/lib/supabase';
 import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
-import AnimatedNumber from './AnimatedNumber';
 import TeamCard from './TeamCard';
-import InteractiveSurface from '@/components/InteractiveSurface';
 import ConversationsTable, {
   type ConversationRow,
 } from './ConversationsTable';
+import StatCards, {
+  type ConversationLite,
+  type DailyBucket,
+  type EmployeeRow,
+} from './StatCards';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +30,7 @@ type UserCardData = UserRow & {
 
 type ConvRow = {
   user_id: string;
+  user_email: string | null;
   started_at: string;
   customer_name: string | null;
   quote_reference: string | null;
@@ -38,6 +42,10 @@ function formatDate(unixSeconds: number): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+}
+
+function formatDateOnly(date: Date): string {
+  return date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
 }
 
 function relativeTime(unixSeconds: number | undefined): string {
@@ -63,11 +71,15 @@ function statusLabel(status: ThreadSummary['status']): string {
   return 'مغلقة';
 }
 
-function startOfDayIso(offsetDays = 0): string {
+function startOfDayDate(offsetDays = 0): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - offsetDays);
-  return d.toISOString();
+  return d;
+}
+
+function startOfDayIso(offsetDays = 0): string {
+  return startOfDayDate(offsetDays).toISOString();
 }
 
 function initial(name: string | null, fallback: string): string {
@@ -140,16 +152,15 @@ async function fetchUsers(
 }
 
 async function fetchRecentConversations(
-  supabase: ReturnType<typeof createAdminClient>,
-  userIds: string[]
+  supabase: ReturnType<typeof createAdminClient>
 ): Promise<ConvRow[]> {
-  if (userIds.length === 0) return [];
   const since = new Date(Date.now() - 90 * 86400 * 1000).toISOString();
 
   const withRef = await supabase
     .from('conversations')
-    .select('user_id, started_at, customer_name, quote_reference, session_id')
-    .in('user_id', userIds)
+    .select(
+      'user_id, user_email, started_at, customer_name, quote_reference, session_id'
+    )
     .gte('started_at', since)
     .order('started_at', { ascending: false });
 
@@ -157,8 +168,7 @@ async function fetchRecentConversations(
 
   const legacy = await supabase
     .from('conversations')
-    .select('user_id, started_at, customer_name, session_id')
-    .in('user_id', userIds)
+    .select('user_id, user_email, started_at, customer_name, session_id')
     .gte('started_at', since)
     .order('started_at', { ascending: false });
   if (legacy.error) return [];
@@ -191,6 +201,44 @@ function matchConversation(
     }
   }
   return best;
+}
+
+function findThreadIdForConversation(
+  conv: ConvRow,
+  threadsByUser: Map<string, ThreadSummary[]>
+): string | null {
+  const list = threadsByUser.get(conv.user_id);
+  if (!list) return null;
+  const cMs = new Date(conv.started_at).getTime();
+  let best: ThreadSummary | null = null;
+  let bestDiff = 10 * 60 * 1000;
+  for (const t of list) {
+    const diff = Math.abs(t.created_at * 1000 - cMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = t;
+    }
+  }
+  return best?.id ?? null;
+}
+
+function bucketDailyCounts(rows: ConvRow[], days: number): DailyBucket[] {
+  const start = startOfDayDate(days - 1);
+  const buckets = new Array(days).fill(0);
+  const startMs = start.getTime();
+  for (const r of rows) {
+    const ms = new Date(r.started_at).getTime();
+    if (ms < startMs) continue;
+    const dayDate = new Date(ms);
+    dayDate.setHours(0, 0, 0, 0);
+    const offset = Math.floor((dayDate.getTime() - startMs) / 86400000);
+    if (offset >= 0 && offset < days) buckets[offset]++;
+  }
+  return buckets.map((count, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return { dateLabel: formatDateOnly(d), count };
+  });
 }
 
 export default async function AdminPage({
@@ -249,16 +297,10 @@ export default async function AdminPage({
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
-  const visibleUserIds = Array.from(
-    new Set(
-      visibleThreads
-        .map((t) => parseUserId(t.user))
-        .filter((id): id is string => Boolean(id))
-    )
-  );
-  const conversations = await fetchRecentConversations(supabase, visibleUserIds);
+  const allConversations = await fetchRecentConversations(supabase);
+
   const convsByUser = new Map<string, ConvRow[]>();
-  for (const c of conversations) {
+  for (const c of allConversations) {
     const list = convsByUser.get(c.user_id);
     if (list) list.push(c);
     else convsByUser.set(c.user_id, [c]);
@@ -305,6 +347,44 @@ export default async function AdminPage({
       .gte('started_at', startOfDayIso(6)),
   ]);
 
+  const dailyCounts30 = bucketDailyCounts(allConversations, 30);
+  const dailyCounts7 = bucketDailyCounts(allConversations, 7);
+
+  const sevenDaysAgoMs = startOfDayDate(6).getTime();
+  const todayMs = startOfDayDate(0).getTime();
+
+  const employeesForModal: EmployeeRow[] = userCards.map((u) => ({
+    id: u.id,
+    fullName: u.full_name,
+    email: u.email,
+    imageUrl: u.image_url,
+    role: u.role,
+    count: u.count,
+    lastActivityLabel: relativeTime(u.lastActivity),
+  }));
+
+  const buildLite = (c: ConvRow): ConversationLite => {
+    const u = userMap.get(c.user_id);
+    return {
+      threadId: findThreadIdForConversation(c, threadsByUser),
+      dateLabel: new Date(c.started_at).toLocaleString('ar-SA', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+      employeeName: u?.full_name ?? c.user_email ?? '—',
+      customerName: c.customer_name ?? '—',
+      quoteRef: c.quote_reference ?? '—',
+    };
+  };
+
+  const todayList: ConversationLite[] = allConversations
+    .filter((c) => new Date(c.started_at).getTime() >= todayMs)
+    .map(buildLite);
+
+  const weekList: ConversationLite[] = allConversations
+    .filter((c) => new Date(c.started_at).getTime() >= sevenDaysAgoMs)
+    .map(buildLite);
+
   return (
     <main className="admin-page">
       <header className="admin-header">
@@ -327,32 +407,17 @@ export default async function AdminPage({
         </div>
       </header>
 
-      <section className="admin-stats" aria-label="إحصائيات">
-        <InteractiveSurface className="stat" tilt={5}>
-          <div className="stat-value">
-            <AnimatedNumber value={totalConversations ?? 0} />
-          </div>
-          <div className="stat-label">إجمالي الجلسات</div>
-        </InteractiveSurface>
-        <InteractiveSurface className="stat" tilt={5}>
-          <div className="stat-value">
-            <AnimatedNumber value={uniqueUsers ?? 0} />
-          </div>
-          <div className="stat-label">الموظفون</div>
-        </InteractiveSurface>
-        <InteractiveSurface className="stat" tilt={5}>
-          <div className="stat-value">
-            <AnimatedNumber value={weekCount ?? 0} />
-          </div>
-          <div className="stat-label">آخر 7 أيام</div>
-        </InteractiveSurface>
-        <InteractiveSurface className="stat" tilt={5}>
-          <div className="stat-value">
-            <AnimatedNumber value={todayCount ?? 0} />
-          </div>
-          <div className="stat-label">اليوم</div>
-        </InteractiveSurface>
-      </section>
+      <StatCards
+        totalCount={totalConversations ?? 0}
+        employeeCount={uniqueUsers ?? 0}
+        weekCount={weekCount ?? 0}
+        todayCount={todayCount ?? 0}
+        dailyCounts30={dailyCounts30}
+        dailyCounts7={dailyCounts7}
+        employees={employeesForModal}
+        todayList={todayList}
+        weekList={weekList}
+      />
 
       <section className="team-section" aria-label="الفريق">
         <div className="team-section-header">
