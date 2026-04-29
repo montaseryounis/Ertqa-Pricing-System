@@ -5,6 +5,9 @@ import { listThreads, parseUserId, type ThreadSummary } from '@/lib/openai';
 import AnimatedNumber from './AnimatedNumber';
 import TeamCard from './TeamCard';
 import InteractiveSurface from '@/components/InteractiveSurface';
+import ConversationsTable, {
+  type ConversationRow,
+} from './ConversationsTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,8 +139,6 @@ async function fetchUsers(
   return (legacy.data as LegacyRow[]).map((u) => ({ ...u, image_url: null }));
 }
 
-// Fetch recent conversations and tolerate the case where quote_reference
-// hasn't been added yet.
 async function fetchRecentConversations(
   supabase: ReturnType<typeof createAdminClient>,
   userIds: string[]
@@ -168,9 +169,6 @@ async function fetchRecentConversations(
   }));
 }
 
-// Match a thread to the closest conversation row for the same user
-// (within ~10 minutes, since the first thread is created shortly
-// after the session). Returns null if no plausible match.
 function matchConversation(
   threadUser: string,
   threadCreatedAt: number,
@@ -183,7 +181,7 @@ function matchConversation(
 
   const threadMs = threadCreatedAt * 1000;
   let best: ConvRow | null = null;
-  let bestDiff = 10 * 60 * 1000; // 10 min window
+  let bestDiff = 10 * 60 * 1000;
   for (const c of list) {
     const cMs = new Date(c.started_at).getTime();
     const diff = Math.abs(threadMs - cMs);
@@ -251,8 +249,6 @@ export default async function AdminPage({
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
-  // Pull conversation rows for every user that owns a visible thread,
-  // then bucket them so matchConversation() is O(1) lookup per thread.
   const visibleUserIds = Array.from(
     new Set(
       visibleThreads
@@ -267,6 +263,29 @@ export default async function AdminPage({
     if (list) list.push(c);
     else convsByUser.set(c.user_id, [c]);
   }
+
+  const tableRows: ConversationRow[] = visibleThreads.map((t) => {
+    const userId = parseUserId(t.user);
+    const u = userId ? userMap.get(userId) : undefined;
+    const conv = matchConversation(t.user, t.created_at, convsByUser);
+    return {
+      threadId: t.id,
+      dateLabel: formatDate(t.created_at),
+      employeeName: u?.full_name ?? '—',
+      customerName: conv?.customer_name ?? '—',
+      quoteRef: conv?.quote_reference ?? '—',
+      title: t.title ?? '—',
+      statusLabel: statusLabel(t.status),
+      statusType: t.status.type,
+    };
+  });
+
+  const tableHeading = selectedUser
+    ? `محادثات ${selectedUser.full_name ?? selectedUser.email}`
+    : 'المحادثات';
+  const emptyMessage = selectedUser
+    ? 'لا توجد محادثات لهذا الموظف بعد.'
+    : 'لا توجد محادثات فعلية بعد. ابدأ محادثة من الصفحة الرئيسية.';
 
   const [
     { count: totalConversations },
@@ -401,78 +420,14 @@ export default async function AdminPage({
         </div>
       </section>
 
-      <section className="admin-table-wrap">
-        <div className="admin-table-header">
-          <h2>
-            {selectedUser
-              ? `محادثات ${selectedUser.full_name ?? selectedUser.email}`
-              : 'المحادثات'}
-          </h2>
-          <span className="admin-subtle">
-            {threadsError
-              ? `فشل تحميل المحادثات: ${threadsError}`
-              : `تعرض ${visibleThreads.length} محادثة (الحد الأقصى 100)`}
-          </span>
-        </div>
-        {visibleThreads.length === 0 && !threadsError ? (
-          <div className="admin-empty">
-            {selectedUser
-              ? 'لا توجد محادثات لهذا الموظف بعد.'
-              : 'لا توجد محادثات فعلية بعد. ابدأ محادثة من الصفحة الرئيسية.'}
-          </div>
-        ) : (
-          <div className="admin-table-scroll">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th>الموظف</th>
-                  <th>العميل</th>
-                  <th>رقم العرض</th>
-                  <th>العنوان</th>
-                  <th>الحالة</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleThreads.map((t) => {
-                  const userId = parseUserId(t.user);
-                  const u = userId ? userMap.get(userId) : undefined;
-                  const conv = matchConversation(
-                    t.user,
-                    t.created_at,
-                    convsByUser
-                  );
-                  return (
-                    <tr key={t.id}>
-                      <td>{formatDate(t.created_at)}</td>
-                      <td>{u?.full_name ?? '—'}</td>
-                      <td>{conv?.customer_name ?? '—'}</td>
-                      <td className="quote-ref-cell">
-                        {conv?.quote_reference ?? '—'}
-                      </td>
-                      <td>{t.title ?? '—'}</td>
-                      <td>
-                        <span className={`role-badge role-${t.status.type}`}>
-                          {statusLabel(t.status)}
-                        </span>
-                      </td>
-                      <td>
-                        <Link
-                          href={`/admin/thread/${t.id}`}
-                          className="admin-view-btn"
-                        >
-                          عرض
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ConversationsTable
+        rows={tableRows}
+        heading={tableHeading}
+        emptyMessage={emptyMessage}
+        errorMessage={
+          threadsError ? `فشل تحميل المحادثات: ${threadsError}` : null
+        }
+      />
     </main>
   );
 }
