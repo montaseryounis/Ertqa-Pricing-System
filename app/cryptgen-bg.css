@@ -1,0 +1,106 @@
+/* Cryptgen-style background. Loaded after globals.css so it can
+   override body::before (replacing the logo pattern with a grid),
+   plus styles for the LightBeams overlay. */
+
+body::before {
+  background-image:
+    linear-gradient(to right, rgba(179, 138, 63, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(179, 138, 63, 0.10) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: 0 0;
+  background-repeat: repeat;
+  opacity: 1;
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 35%,
+    black 30%,
+    rgba(0, 0, 0, 0.4) 70%,
+    transparent 100%
+  );
+          mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 35%,
+    black 30%,
+    rgba(0, 0, 0, 0.4) 70%,
+    transparent 100%
+  );
+}
+
+[data-theme='dark'] body::before {
+  background-image:
+    linear-gradient(to right, rgba(212, 175, 102, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 102, 0.08) 1px, transparent 1px);
+}
+
+@media (min-width: 640px) {
+  body::before { background-size: 80px 80px; }
+}
+
+@media (min-width: 1024px) {
+  body::before { background-size: 100px 100px; }
+}
+
+/* ===== Vertical light beams (Cryptgen-style) ===== */
+
+.light-beams {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.light-beams::before,
+.light-beams::after {
+  content: '';
+  position: absolute;
+  top: -25%;
+  height: 150vh;
+  width: 240px;
+  background: linear-gradient(
+    180deg,
+    rgba(232, 199, 122, 0.30) 0%,
+    rgba(179, 138, 63, 0.12) 30%,
+    transparent 70%
+  );
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+.light-beams::before {
+  inset-inline-start: 22%;
+  transform: rotate(14deg);
+  animation: beam-pulse 7s ease-in-out infinite;
+}
+
+.light-beams::after {
+  inset-inline-end: 22%;
+  transform: rotate(-12deg);
+  animation: beam-pulse 9s 1.5s ease-in-out infinite;
+}
+
+[data-theme='light'] .light-beams::before,
+[data-theme='light'] .light-beams::after {
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
+
+[data-theme='dark'] .light-beams::before,
+[data-theme='dark'] .light-beams::after {
+  background: linear-gradient(
+    180deg,
+    rgba(243, 216, 149, 0.35) 0%,
+    rgba(212, 175, 102, 0.14) 30%,
+    transparent 70%
+  );
+  opacity: 0.65;
+}
+
+@keyframes beam-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light-beams::before,
+  .light-beams::after { animation: none; }
+}
