@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ChatExperience from '@/components/ChatExperience';
 import ThemeToggle from '@/components/ThemeToggle';
+import TypewriterTitle from '@/components/TypewriterTitle';
 import { UserButton } from '@clerk/nextjs';
 import { isAdminUser } from '@/lib/admin';
 
@@ -33,7 +34,9 @@ export default async function HomePage() {
           />
           <span className="brand-sub">ERTQA</span>
         </div>
-        <h1 className="hero-title">وكيل التسعير الذكي</h1>
+        <h1 className="hero-title">
+          <TypewriterTitle text="وكيل التسعير الذكي" />
+        </h1>
         <p className="hero-sub">
           أداة داخلية لفريق المبيعات — تسعير الهدايا والجوائز المخصصة بسرعة ودقة.
         </p>
