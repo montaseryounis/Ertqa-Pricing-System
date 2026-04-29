@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import './effects.css';
 import './typewriter.css';
+import './modal.css';
 
 export const metadata: Metadata = {
   title: 'ارتقاء · وكيل التسعير الذكي',
