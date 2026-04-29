@@ -392,6 +392,88 @@
   display: inline-block;
 }
 
+/* ===== Search bar (admin conversations table) ===== */
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 0 18px 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.18s ease, background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(179, 138, 63, 0.12);
+}
+
+[data-theme='dark'] .search-bar:focus-within {
+  box-shadow: 0 0 0 3px rgba(212, 175, 102, 0.18);
+}
+
+.search-icon {
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.search-bar:focus-within .search-icon {
+  color: var(--accent);
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 4px 0;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
+/* Hide native search clear icon (we render our own) */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-clear {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: var(--border);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.search-clear:hover {
+  background: var(--ink-soft);
+  color: var(--surface);
+  transform: scale(1.05);
+}
+
 /* ===== Cleanup page (/admin/cleanup) ===== */
 
 .cleanup-form,
@@ -658,4 +740,5 @@
   .ref-regen:hover { transform: none; }
   .customer-form-submit:hover { transform: none; }
   .cleanup-btn-danger:hover { transform: none; }
+  .search-clear:hover { transform: none; }
 }
