@@ -4,13 +4,11 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { arSA } from '@clerk/localizations';
 import { Analytics } from '@vercel/analytics/react';
 import AuroraBackground from '@/components/AuroraBackground';
-import LightBeams from '@/components/LightBeams';
 import './globals.css';
 import './effects.css';
 import './typewriter.css';
 import './modal.css';
 import './aurora.css';
-import './cryptgen-bg.css';
 
 export const metadata: Metadata = {
   title: 'ارتقاء · وكيل التسعير الذكي',
@@ -65,7 +63,6 @@ export default function RootLayout({
         </head>
         <body>
           <AuroraBackground />
-          <LightBeams />
           {children}
           <Analytics />
         </body>
