@@ -68,6 +68,19 @@ export async function getThread(threadId: string): Promise<ThreadSummary> {
   return res.json();
 }
 
+export async function deleteThread(threadId: string): Promise<boolean> {
+  const res = await fetch(`${OPENAI_BASE}/threads/${threadId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  // 404 = already gone; treat as success so retries are idempotent.
+  if (res.status === 404) return true;
+  if (!res.ok) {
+    throw new Error(`deleteThread ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
 export type Attachment = {
   id: string;
   name: string;
